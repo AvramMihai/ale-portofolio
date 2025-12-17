@@ -265,37 +265,36 @@ document.addEventListener('DOMContentLoaded', function () {
   // Select both images and videos in portfolio cards
   const galleryItems = document.querySelectorAll('.portfolio-card .card-image');
 
-  // Specific handler for Video Resume Button
-  const videoResumeBtn = document.getElementById('videoResumeBtn');
-  if (videoResumeBtn && modal && modalVideo) {
-    videoResumeBtn.addEventListener('click', function () {
-      modal.style.display = "block";
+  // Function to load YouTube Video
+  const loadYouTubeVideo = (videoId) => {
+    // Clear existing content
+    if (modalImg) modalImg.style.display = "none";
+    if (modalVideo) {
+      modalVideo.style.display = "none";
+      modalVideo.src = ""; // Stop previous video
+    }
 
-      if (modalImg) modalImg.style.display = "none";
+    // Check if iframe exists, if not create it
+    let iframe = document.getElementById('modalIframe');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'modalIframe';
+      iframe.className = 'modal-content';
+      iframe.style.cssText = "width: 80%; height: 80vh; max-height: 80vh; margin: auto; display: block; border-radius: var(--radius-md); box-shadow: 0 5px 25px rgba(0,0,0,0.5); border: none;";
+      iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+      iframe.allowFullscreen = true;
 
-      modalVideo.style.display = "block";
-      modalVideo.src = "resources/video resume.mp4";
-      modalVideo.play();
+      // Insert after modalVideo
+      if (modalVideo && modalVideo.parentNode) {
+        modalVideo.parentNode.insertBefore(iframe, modalVideo.nextSibling);
+      } else {
+        modal.appendChild(iframe);
+      }
+    }
 
-      if (captionText) captionText.textContent = "Video Resume";
-    });
-  }
-
-  // Specific handler for Tutorial Video Button (Home Page)
-  const tutorialVideoBtn = document.getElementById('tutorialVideoBtn');
-  if (tutorialVideoBtn && modal && modalVideo) {
-    tutorialVideoBtn.addEventListener('click', function () {
-      modal.style.display = "block";
-
-      if (modalImg) modalImg.style.display = "none";
-
-      modalVideo.style.display = "block";
-      modalVideo.src = "resources/Componenta 8.mp4";
-      modalVideo.play();
-
-      if (captionText) captionText.textContent = "Tutorial Video";
-    });
-  }
+    iframe.style.display = "block";
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+  };
 
   // Function to close modal
   const closeModal = function () {
@@ -303,6 +302,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (modalVideo) {
       modalVideo.pause();
       modalVideo.src = "";
+    }
+    const iframe = document.getElementById('modalIframe');
+    if (iframe) {
+      iframe.style.display = "none";
+      iframe.src = "";
     }
   }
 
@@ -326,28 +330,50 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
+  // Specific handler for Video Resume Button (YouTube: h6cEnnvY5cc)
+  const videoResumeBtn = document.getElementById('videoResumeBtn');
+  if (videoResumeBtn) {
+    videoResumeBtn.addEventListener('click', function () {
+      modal.style.display = "block";
+      loadYouTubeVideo('h6cEnnvY5cc');
+      if (captionText) captionText.textContent = "Video Resume";
+    });
+  }
+
+  // Specific handler for Tutorial Video Button (YouTube: Jw7nXCdDqRY)
+  const tutorialVideoBtn = document.getElementById('tutorialVideoBtn');
+  if (tutorialVideoBtn) {
+    tutorialVideoBtn.addEventListener('click', function () {
+      modal.style.display = "block";
+      loadYouTubeVideo('Jw7nXCdDqRY');
+      if (captionText) captionText.textContent = "Tutorial Video";
+    });
+  }
+
   if (modal && galleryItems.length > 0) {
     galleryItems.forEach(item => {
       // Add visual cue
       item.style.cursor = "zoom-in";
 
       item.addEventListener('click', function (e) {
-        // Prevent default if it's a video playing inside card (optional, but good for custom modal)
+        // Prevent default
+        e.preventDefault();
 
-        // Determine type
         const isVideo = this.tagName === 'VIDEO';
+        // Check for YouTube data attribute
+        const youtubeId = this.getAttribute('data-youtube-id') ||
+          (this.closest('.portfolio-card') ? this.closest('.portfolio-card').getAttribute('data-youtube-id') : null);
 
         modal.style.display = "block";
 
-        // Reset state
-        if (modalImg) modalImg.style.display = "none";
-        if (modalVideo) {
-          modalVideo.style.display = "none";
-          modalVideo.pause();
-          modalVideo.src = "";
-        }
+        if (youtubeId) {
+          loadYouTubeVideo(youtubeId);
+        } else if (isVideo) {
+          // Fallback for local videos if any left
+          if (modalImg) modalImg.style.display = "none";
+          const iframe = document.getElementById('modalIframe');
+          if (iframe) iframe.style.display = "none";
 
-        if (isVideo) {
           if (modalVideo) {
             modalVideo.style.display = "block";
             const source = this.querySelector('source');
@@ -357,6 +383,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
           }
         } else {
+          // Image
+          if (modalVideo) {
+            modalVideo.style.display = "none";
+            modalVideo.pause();
+          }
+          const iframe = document.getElementById('modalIframe');
+          if (iframe) iframe.style.display = "none";
+
           if (modalImg) {
             modalImg.style.display = "block";
             modalImg.src = this.src;
@@ -367,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const cardTitle = this.closest('.portfolio-card')?.querySelector('h3')?.textContent;
         if (cardTitle) {
           captionText.textContent = cardTitle;
-        } else if (!isVideo) {
+        } else if (!isVideo && !youtubeId) {
           captionText.textContent = this.alt;
         } else {
           captionText.textContent = "Video Preview";
